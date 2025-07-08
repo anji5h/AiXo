@@ -1,0 +1,44 @@
+version: '3.8'
+services:
+  consul:
+    image: hashicorp/consul:latest
+    container_name: consul
+    ports:
+      - "8500:8500"
+      - "8600:8600/udp"
+    command: "consul agent -server -bootstrap -ui -client=0.0.0.0"
+    networks:
+      - app-network
+
+  api-gateway:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - consul
+    environment:
+      - SPRING_CLOUD_CONSUL_HOST=consul
+      - SPRING_CLOUD_CONSUL_PORT=8500
+    networks:
+      - app-network
+
+  react-app:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: react-app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api-gateway
+    environment:
+      - VITE_API_URL=http://api-gateway:8080
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
