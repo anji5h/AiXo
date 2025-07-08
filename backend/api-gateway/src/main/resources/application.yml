@@ -1,0 +1,44 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    consul:
+      host: localhost
+      port: 8500
+      discovery:
+        enabled: true
+        instance-id: ${spring.application.name}:${random.value}
+        health-check-path: /actuator/health
+        health-check-interval: 10s
+      config:
+        enabled: true
+        format: YAML
+        default-context: application
+        profile-separator: ','
+        prefixes:
+          - config
+    gateway:
+      server:
+        webflux:
+          discovery:
+            locator:
+              enabled: true
+          routes:
+            - id: user-service
+              uri: lb://user-service
+              predicates:
+                - Path=/api/users/**
+              filters:
+                - RewritePath=/api/users/(?<segment>.*), /${segment}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      show-details: always
