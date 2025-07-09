@@ -12,7 +12,7 @@ spring:
         enabled: true
         instance-id: ${spring.application.name}:${random.value}
         health-check-path: /actuator/health
-        health-check-interval: 10s
+        health-check-interval: 15s
       config:
         enabled: true
         format: YAML
@@ -30,9 +30,22 @@ spring:
             - id: user-service
               uri: lb://user-service
               predicates:
-                - Path=/api/users/**
+                - Path=/api/users/**,
               filters:
                 - RewritePath=/api/users/(?<segment>.*), /${segment}
+    globalcors:
+      cors-configurations:
+        '[/**]':
+          allowed-origins: ${FRONTEND_URL:http://localhost:5173}
+          allowed-methods:
+            - GET
+            - POST
+            - PUT
+            - DELETE
+            - OPTIONS
+          allowed-headers: "*"
+          allow-credentials: true
+
 
 management:
   endpoints:
