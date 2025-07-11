@@ -1,51 +1,42 @@
 server:
-  port: ${SERVER_PORT:8080}
+  port: 8080
 
 spring:
   application:
     name: api-gateway
+
+  cache:
+    type: caffeine
+    cache-names: lbCache
+    caffeine:
+      spec: maximumSize=500,expireAfterWrite=5m
+
+  config:
+    import: 'consul:'
+
   cloud:
     consul:
-      host: ${SPRING_CLOUD_CONSUL_HOST:localhost}
-      port: ${SPRING_CLOUD_CONSUL_PORT:8500}
+      host: localhost
+      port: 8500
       discovery:
         enabled: true
-        instance-id: ${spring.application.name}:${random.value}
-        health-check-path: /actuator/health
-        health-check-interval: 15s
-      config:
-        enabled: true
-        format: YAML
-        default-context: application
-        profile-separator: ','
-        prefixes:
-          - config
+        register: true
+        prefer-ip-address: true
+        instanceId: ${spring.application.name}:${random.value}
+        healthCheckPath: /actuator/health
+        healthCheckInterval: 10s
     gateway:
       server:
         webflux:
           discovery:
             locator:
               enabled: true
+              lower-case-service-id: true
           routes:
             - id: user-service
               uri: lb://user-service
               predicates:
-                - Path=/api/users/**,
-              filters:
-                - RewritePath=/api/users/(?<segment>.*), /${segment}
-    globalcors:
-      cors-configurations:
-        '[/**]':
-          allowed-origins: ${FRONTEND_URL:http://localhost:5173}
-          allowed-methods:
-            - GET
-            - POST
-            - PUT
-            - DELETE
-            - OPTIONS
-          allowed-headers: "*"
-          allow-credentials: true
-
+                - Path=/users/**,/oauth2/**,/login/**
 
 management:
   endpoints:
