@@ -1,9 +1,9 @@
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
 spring:
   application:
-    name: api-gateway
+    name: ${SPRING_APPLICATION_NAME:api-gateway}
 
   cache:
     type: caffeine
@@ -16,27 +16,44 @@ spring:
 
   cloud:
     consul:
-      host: localhost
-      port: 8500
+      host: ${CONSUL_HOST:consul}
+      port: ${CONSUL_PORT:8500}
       discovery:
         enabled: true
         register: true
         prefer-ip-address: true
-        instanceId: ${spring.application.name}:${random.value}
+        instanceId: ${SPRING_APPLICATION_NAME:api-gateway}:${random.value}
         healthCheckPath: /actuator/health
         healthCheckInterval: 10s
+      config:
+        enabled: true
+
     gateway:
       server:
         webflux:
           discovery:
             locator:
-              enabled: true
               lower-case-service-id: true
+              enabled: true
           routes:
             - id: user-service
               uri: lb://user-service
               predicates:
-                - Path=/users/**,/oauth2/**,/login/**
+                - Path=/api/user/**,/oauth2/**,/login/**
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOrigins: ${FRONTEND_URL:http://localhost:5173}
+                allowedMethods:
+                  - GET
+                  - POST
+                  - PUT
+                  - PATCH
+                  - DELETE
+                allowed-headers: '*'
+                allow-credentials: true
+
+
 
 management:
   endpoints:

@@ -1,16 +1,28 @@
 services:
   consul:
-    image: hashicorp/consul:latest
+    image: hashicorp/consul:1.16
     container_name: consul
+    command: >
+      consul agent -server -bootstrap-expect=1 
+      -data-dir=/consul/data 
+      -config-dir=/consul/config 
+      -client=0.0.0.0 
+      -ui
     ports:
       - "8500:8500"
       - "8600:8600/udp"
-    command: "consul agent -server -bootstrap-expect=1 -data-dir=/consul/data -config-dir=/consul/config -client=0.0.0.0 -ui"
     volumes:
       - consul_data:/consul/data
-      - ./consul/config:/consul/config
+      - ./consul/config:/consul/config:ro
     networks:
       - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8500/v1/status/leader"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   api-gateway:
     build:
@@ -20,12 +32,23 @@ services:
     ports:
       - "8080:8080"
     depends_on:
-      - consul
+      consul:
+        condition: service_healthy
     environment:
-      - SPRING_CLOUD_CONSUL_HOST=consul
-      - SPRING_CLOUD_CONSUL_PORT=8500
+      - SERVER_PORT=8080
+      - SPRING_APPLICATION_NAME=api-gateway
+      - CONSUL_HOST=consul
+      - CONSUL_PORT=8500
+      - CORS_ORIGIn=http://localhost:3000
     networks:
       - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 20s
+      retries: 3
+      start_period: 20s
 
   react-app:
     build:
@@ -35,11 +58,19 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - api-gateway
+      api-gateway:
+        condition: service_healthy
     environment:
       - VITE_API_URL=http://api-gateway:8080
     networks:
       - app-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 
 networks:
   app-network:
