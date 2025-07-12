@@ -2,12 +2,7 @@ services:
   consul:
     image: hashicorp/consul:1.16
     container_name: consul
-    command: >
-      consul agent -server -bootstrap-expect=1 
-      -data-dir=/consul/data 
-      -config-dir=/consul/config 
-      -client=0.0.0.0 
-      -ui
+    command: consul agent -config-dir=/consul/config 
     ports:
       - "8500:8500"
       - "8600:8600/udp"
@@ -23,6 +18,40 @@ services:
       timeout: 5s
       retries: 5
       start_period: 15s
+  
+  postgres:
+    image: postgres:17
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    networks:
+      - app-network
+  
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    networks:
+      - app-network
 
   api-gateway:
     build:
@@ -35,20 +64,47 @@ services:
       consul:
         condition: service_healthy
     environment:
-      - SERVER_PORT=8080
-      - SPRING_APPLICATION_NAME=api-gateway
       - CONSUL_HOST=consul
       - CONSUL_PORT=8500
-      - CORS_ORIGIn=http://localhost:3000
+      - CORS_ORIGIN=http://localhost:5173
     networks:
       - app-network
-    restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "wget --spider -q http://localhost:8080/actuator/health"]
       interval: 15s
       timeout: 20s
       retries: 3
       start_period: 20s
+  
+  user-service:
+    build:
+      context: ./backend/user-service
+      dockerfile: Dockerfile
+    container_name: user-service
+    env_file: ".env"
+    ports:
+      - "8081:8081"
+    depends_on:
+      consul:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - CONSUL_HOST=consul
+      - CONSUL_PORT=8500
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=user_svc_db
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+    networks:
+      - app-network
 
   react-app:
     build:
@@ -64,13 +120,6 @@ services:
       - VITE_API_URL=http://api-gateway:8080
     networks:
       - app-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 15s
-      timeout: 5s
-      retries: 3
-      start_period: 20s
 
 networks:
   app-network:
@@ -78,3 +127,4 @@ networks:
 
 volumes:
   consul_data:
+  postgres-data:
