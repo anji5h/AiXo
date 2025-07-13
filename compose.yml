@@ -8,7 +8,7 @@ services:
       - "8600:8600/udp"
     volumes:
       - consul_data:/consul/data
-      - ./consul/config:/consul/config:ro
+      - ./consul.config.hcl:/consul/config/consul.config.hcl:ro
     networks:
       - app-network
     restart: unless-stopped
@@ -19,25 +19,25 @@ services:
       retries: 5
       start_period: 15s
   
-  postgres:
-    image: postgres:17
-    container_name: postgres
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 10s
-      retries: 5
-      start_period: 10s
-    networks:
-      - app-network
+  # postgres:
+  #   image: postgres:17
+  #   container_name: postgres
+  #   environment:
+  #     POSTGRES_USER: postgres
+  #     POSTGRES_PASSWORD: postgres
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres-data:/var/lib/postgresql/data
+  #     - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U postgres"]
+  #     interval: 10s
+  #     timeout: 10s
+  #     retries: 5
+  #     start_period: 10s
+  #   networks:
+  #     - app-network
   
   redis:
     image: redis:7
@@ -76,50 +76,50 @@ services:
       retries: 3
       start_period: 20s
   
-  user-service:
-    build:
-      context: ./backend/user-service
-      dockerfile: Dockerfile
-    container_name: user-service
-    env_file: ".env"
-    ports:
-      - "8081:8081"
-    depends_on:
-      consul:
-        condition: service_healthy
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    environment:
-      - CONSUL_HOST=consul
-      - CONSUL_PORT=8500
-      - POSTGRES_HOST=${POSTGRES_HOST}
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=user_svc_db
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-    networks:
-      - app-network
+  # user-service:
+  #   build:
+  #     context: ./backend/user-service
+  #     dockerfile: Dockerfile
+  #   container_name: user-service
+  #   env_file: ".env"
+  #   ports:
+  #     - "8081:8081"
+  #   depends_on:
+  #     consul:
+  #       condition: service_healthy
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   environment:
+  #     - CONSUL_HOST=consul
+  #     - CONSUL_PORT=8500
+  #     - POSTGRES_HOST=${POSTGRES_HOST}
+  #     - POSTGRES_PORT=5432
+  #     - POSTGRES_DB=user_svc_db
+  #     - POSTGRES_USER=${POSTGRES_USER}
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+  #     - REDIS_HOST=redis
+  #     - REDIS_PORT=6379
+  #     - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+  #     - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+  #   networks:
+  #     - app-network
 
-  react-app:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: react-app
-    ports:
-      - "3000:3000"
-    depends_on:
-      api-gateway:
-        condition: service_healthy
-    environment:
-      - VITE_API_URL=http://api-gateway:8080
-    networks:
-      - app-network
+  # react-app:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   container_name: react-app
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     api-gateway:
+  #       condition: service_healthy
+  #   environment:
+  #     - VITE_API_URL=http://api-gateway:8080
+  #   networks:
+  #     - app-network
 
 networks:
   app-network:

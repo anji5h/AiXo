@@ -10,7 +10,7 @@ spring:
     caffeine:
       spec: maximumSize=500,expireAfterWrite=5m
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST:postgres}:${POSTGRES_PORT:5432}/${POSTGRES_DB:user_svc_db}
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:user_svc_db}
     username: ${POSTGRES_USER:postgres}
     password: ${POSTGRES_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
@@ -23,7 +23,7 @@ spring:
     locations: classpath:db/migration
   cloud:
     consul:
-      host: ${CONSUL_HOST:consul}
+      host: ${CONSUL_HOST:localhost}
       port: ${CONSUL_PORT:8500}
       discovery:
         enabled: true
@@ -48,5 +48,5 @@ spring:
             user-name-attribute: email
   data:
     redis:
-      host: ${REDIS_HOST:redis}
+      host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
