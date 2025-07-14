@@ -50,3 +50,9 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+jwt:
+  secret: ${JWT_SECRET:1b90a6e6e1d244b84f6c7bc06193c01cfa511c31e241bc919ae1ec302ef7cf58}
+  expiration: ${JWT_EXPIRATION:86400}
+oauth2:
+  redirect-uri: ${REDIRECT_URI:http://localhost:3000/oauth2/redirect}
+
