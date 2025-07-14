@@ -8,6 +8,8 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.NonNull;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,10 +24,14 @@ import java.util.Map;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-    private final JwtTokenProvider jwtTokenProvider;
 
-    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
+    private final JwtTokenProvider jwtTokenProvider;
+    private final RedisTemplate<String, String> redisTemplate;
+
+    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider,
+                                   RedisTemplate<String, String> redisTemplate) {
         this.jwtTokenProvider = jwtTokenProvider;
+        this.redisTemplate = redisTemplate;
     }
 
     @Override
@@ -35,26 +41,44 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = extractTokenFromHeader(request);
 
-        if (token != null) {
-            try {
-                Map<String, Object> claims = jwtTokenProvider.validateToken(token);
-                String email = (String) claims.get(AppConfig.Jwt.EMAIL);
+        if (!StringUtils.hasText(token)) {
+            sendUnauthorized(response, "Missing JWT token");
+            return;
+        }
 
-                if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    var authentication = new UsernamePasswordAuthenticationToken(email, null,
-                            Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER")));
-                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                }
+        try {
+            Map<String, Object> claims = jwtTokenProvider.validateToken(token);
 
-            } catch (JwtException | IllegalArgumentException ex) {
-                logger.warn("JWT authentication failed: " + ex.getMessage());
-                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Invalid or expired token");
-                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            String jti = (String) claims.get(AppConfig.Jwt.ID);
+            if (isTokenBlacklisted(jti)) {
+                sendUnauthorized(response, "Token has been revoked");
+                return;
             }
+
+            String email = (String) claims.get(AppConfig.Jwt.EMAIL);
+            if (email == null) {
+                sendUnauthorized(response, "Invalid token payload");
+                return;
+            }
+
+            var authentication = new UsernamePasswordAuthenticationToken(
+                    email, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
+            );
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        } catch (JwtException | IllegalArgumentException ex) {
+            logger.warn("JWT validation failed: " + ex.getMessage());
+            sendUnauthorized(response, "Invalid or expired JWT token");
+            return;
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private boolean isTokenBlacklisted(String jti) {
+        if (!StringUtils.hasText(jti)) return false;
+        return redisTemplate.hasKey(AppConfig.Redis.DENYLIST_PREFIX + jti);
     }
 
     private String extractTokenFromHeader(HttpServletRequest request) {
@@ -63,5 +87,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return authHeader.substring(AppConfig.Http.BEARER_PREFIX.length());
         }
         return null;
+    }
+
+    private void sendUnauthorized(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        String body = String.format("{\"status\":401,\"error\":\"Unauthorized\",\"message\":\"%s\"}",
+                message);
+        response.getWriter().write(body);
     }
 }

@@ -35,6 +35,7 @@ public class JwtTokenProvider {
                 .claim(AppConfig.Jwt.EMAIL, email)
                 .claim(AppConfig.Jwt.NAME, name)
                 .claim(AppConfig.Jwt.OAUTH_ID, oAuthId)
+                .id(UUID.randomUUID().toString())
                 .subject(email)
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusSeconds(jwtExpiration)))
@@ -53,6 +54,7 @@ public class JwtTokenProvider {
                 .getPayload();
 
         Map<String, Object> claims = new HashMap<>();
+        claims.put(AppConfig.Jwt.ID, jwsClaims.getId());
         claims.put(AppConfig.Jwt.NAME, jwsClaims.get(AppConfig.Jwt.NAME));
         claims.put(AppConfig.Jwt.EMAIL, jwsClaims.get(AppConfig.Jwt.EMAIL));
         claims.put(AppConfig.Jwt.OAUTH_ID, jwsClaims.get(AppConfig.Jwt.OAUTH_ID));
