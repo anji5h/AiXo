@@ -1,4 +1,4 @@
-package com.aixo.userservice.config;
+package com.aixo.apigateway.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

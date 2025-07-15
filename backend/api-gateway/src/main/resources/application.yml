@@ -1,19 +1,19 @@
 server:
   port: ${SERVER_PORT:8080}
-
 spring:
   application:
     name: ${SPRING_APPLICATION_NAME:api-gateway}
-
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   cache:
     type: caffeine
     cache-names: lbCache
     caffeine:
       spec: maximumSize=500,expireAfterWrite=5m
-
   config:
     import: 'consul:'
-
   cloud:
     consul:
       host: ${CONSUL_HOST:localhost}
@@ -52,9 +52,6 @@ spring:
                   - DELETE
                 allowed-headers: '*'
                 allow-credentials: true
-
-
-
 management:
   endpoints:
     web:
@@ -63,3 +60,5 @@ management:
   endpoint:
     health:
       show-details: always
+jwt:
+  secret: ${JWT_SECRET:1b90a6e6e1d244b84f6c7bc06193c01cfa511c31e241bc919ae1ec302ef7cf58}

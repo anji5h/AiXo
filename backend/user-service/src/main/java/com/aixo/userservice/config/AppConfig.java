@@ -19,16 +19,6 @@ public final class AppConfig {
     }
 
     // ========================
-    // HTTP Headers
-    // ========================
-    public static final class Http {
-        public static final String AUTHORIZATION = "Authorization";
-        public static final String BEARER_PREFIX = "Bearer ";
-
-        private Http() {}
-    }
-
-    // ========================
     // OAuth2 Provider Info
     // ========================
     public static final class OAuth2 {
@@ -44,7 +34,7 @@ public final class AppConfig {
     // Redis Keys
     // ========================
     public static final class Redis {
-        public static final String DENYLIST_PREFIX = "jwt:denylist:";
+        public static final String DENYLIST_PREFIX = "jti:denylist:";
 
         private Redis() {}
     }

@@ -28,9 +28,9 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request.getRequestURI());
     }
 
-    @ExceptionHandler(NotFoundException.class)
+    @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Object> handleBadRequest(IllegalArgumentException ex, HttpServletRequest request) {
-        return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), request.getRequestURI());
+        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request.getRequestURI());
     }
 
     @ExceptionHandler(UnauthorizedException.class)
