@@ -1,16 +1,19 @@
 package com.aixo.userservice.provider;
 
 import com.aixo.userservice.config.AppConfig;
+import com.aixo.userservice.model.User;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.time.Instant;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 @Component
 public class JwtTokenProvider {
@@ -24,19 +27,16 @@ public class JwtTokenProvider {
     /**
      * Generates a signed JWT from the given OAuth2 user details.
      */
-    public String generateToken(OAuth2User user) {
-        String email = getAttribute(user, AppConfig.OAuth2.ATTRIBUTE_EMAIL);
-        String name = getAttribute(user, AppConfig.OAuth2.ATTRIBUTE_NAME);
-        String oAuthId = getAttribute(user, AppConfig.OAuth2.ATTRIBUTE_SUB);
+    public String generateToken(User user) {
 
         Instant now = Instant.now();
 
         return Jwts.builder()
-                .claim(AppConfig.Jwt.EMAIL, email)
-                .claim(AppConfig.Jwt.NAME, name)
-                .claim(AppConfig.Jwt.OAUTH_ID, oAuthId)
+                .claim(AppConfig.Jwt.EMAIL, user.getEmail())
+                .claim(AppConfig.Jwt.NAME, user.getName())
+                .claim(AppConfig.Jwt.OAUTH_ID, user.getOAuthId())
                 .id(UUID.randomUUID().toString())
-                .subject(email)
+                .subject(user.getEmail())
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusSeconds(jwtExpiration)))
                 .signWith(getSecretKey())
@@ -62,15 +62,6 @@ public class JwtTokenProvider {
         claims.put(AppConfig.Jwt.ISSUED_AT, jwsClaims.getExpiration());
 
         return claims;
-    }
-
-    /**
-     * Extracts a required attribute from the OAuth2User.
-     */
-    private String getAttribute(OAuth2User user, String attribute) {
-        return Optional.ofNullable(user.getAttribute(attribute))
-                .map(Object::toString)
-                .orElseThrow(() -> new IllegalArgumentException("Missing OAuth2 attribute: " + attribute));
     }
 
     /**

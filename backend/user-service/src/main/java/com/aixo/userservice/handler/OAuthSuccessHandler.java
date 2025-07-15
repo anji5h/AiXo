@@ -1,6 +1,7 @@
 package com.aixo.userservice.handler;
 
 import com.aixo.userservice.provider.JwtTokenProvider;
+import com.aixo.userservice.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,18 +18,21 @@ public class OAuthSuccessHandler implements AuthenticationSuccessHandler {
     private String redirectUri;
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final UserService userService;
 
-    public OAuthSuccessHandler(JwtTokenProvider jwtTokenProvider) {
+    public OAuthSuccessHandler(JwtTokenProvider jwtTokenProvider, UserService userService) {
         this.jwtTokenProvider = jwtTokenProvider;
+        this.userService = userService;
     }
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException{
         OAuth2AuthenticationToken authToken = (OAuth2AuthenticationToken) authentication;
-        String jwt = jwtTokenProvider.generateToken(authToken.getPrincipal());
+        var user = userService.upsertUser(authToken.getPrincipal());
+        String jwtToken = jwtTokenProvider.generateToken(user);
 
-        String redirectUrl = String.format(redirectUri, "?token=" + jwt);
+        String redirectUrl = String.format("%s?token=%s", redirectUri, jwtToken);
         response.sendRedirect(redirectUrl);
     }
 }
