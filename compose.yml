@@ -8,7 +8,7 @@ services:
       - "8600:8600/udp"
     volumes:
       - consul_data:/consul/data
-      - ./consul/config:/consul/config:ro
+      - ./consul.config.hcl:/consul/config/consul.config.hcl:ro
     networks:
       - app-network
     restart: unless-stopped
@@ -29,7 +29,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -62,6 +62,8 @@ services:
       - "8080:8080"
     depends_on:
       consul:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     environment:
       - CONSUL_HOST=consul
@@ -103,23 +105,24 @@ services:
       - REDIS_PORT=6379
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=http://localhost:8081/login/oauth2/code/{registrationId}
     networks:
       - app-network
 
-  react-app:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: react-app
-    ports:
-      - "3000:3000"
-    depends_on:
-      api-gateway:
-        condition: service_healthy
-    environment:
-      - VITE_API_URL=http://api-gateway:8080
-    networks:
-      - app-network
+  # react-app:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   container_name: react-app
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     api-gateway:
+  #       condition: service_healthy
+  #   environment:
+  #     - VITE_API_URL=http://api-gateway:8080
+  #   networks:
+  #     - app-network
 
 networks:
   app-network:

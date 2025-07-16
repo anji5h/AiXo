@@ -9,8 +9,12 @@ spring:
     cache-names: lbCache
     caffeine:
       spec: maximumSize=500,expireAfterWrite=5m
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   datasource:
-    url: jdbc:postgresql://${POSTGRES_HOST:postgres}:${POSTGRES_PORT:5432}/${POSTGRES_DB:user_svc_db}
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:user_svc_db}
     username: ${POSTGRES_USER:postgres}
     password: ${POSTGRES_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
@@ -23,7 +27,7 @@ spring:
     locations: classpath:db/migration
   cloud:
     consul:
-      host: ${CONSUL_HOST:consul}
+      host: ${CONSUL_HOST:localhost}
       port: ${CONSUL_PORT:8500}
       discovery:
         enabled: true
@@ -38,7 +42,7 @@ spring:
           google:
             client-id: ${GOOGLE_CLIENT_ID}
             client-secret: ${GOOGLE_CLIENT_SECRET}
-            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8081/login/oauth2/code/{registrationId}}
             scope: openid,profile,email,https://www.googleapis.com/auth/gmail.readonly
         provider:
           google:
@@ -46,7 +50,9 @@ spring:
             token-uri: https://www.googleapis.com/oauth2/v4/token
             user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
             user-name-attribute: email
-  data:
-    redis:
-      host: ${REDIS_HOST:redis}
-      port: ${REDIS_PORT:6379}
+jwt:
+  secret: ${JWT_SECRET:1b90a6e6e1d244b84f6c7bc06193c01cfa511c31e241bc919ae1ec302ef7cf58}
+  expiration: ${JWT_EXPIRATION:86400}
+oauth2:
+  redirect-uri: ${REDIRECT_URI:http://localhost:5173/oauth2/redirect}
+
